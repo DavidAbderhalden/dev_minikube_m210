@@ -1,0 +1,50 @@
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: mongo-deployment
+  labels:
+    app: mongo
+spec:
+  replicas: 1 # how many pods
+  # which pods belongs to the same deployment
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo #required (can be labeled as one wants)
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:5.0
+        ports:
+        - containerPort: 27017
+        # environment variables for mongo db
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          # reference from secret
+          valueFrom: 
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-user
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          # reference from secret
+          valueFrom: 
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-password
+---
+# Internal Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service
+spec:
+  selector: 
+    app: mongo # the pods the service belongs to
+  ports:
+    - protocol: TCP
+      port: 7331 # can be any port
+      targetPort: 27017 # port of pods (containerPort)

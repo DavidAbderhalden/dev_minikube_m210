@@ -1,0 +1,58 @@
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: webapp-deployment
+  labels:
+    app: webapp
+spec:
+  replicas: 1 # how many pods
+  # which pods belongs to the same deployment
+  selector:
+    matchLabels:
+      app: webapp
+  template:
+    metadata:
+      labels:
+        app: webapp #required (can be labeled as one wants)
+    spec:
+      containers:
+      - name: webappdb
+        image: nanajanashia/k8s-demo-app:v1.0
+        ports:
+        - containerPort: 3000
+        # mongodb connection, authentication (handled by image)
+        env:
+        - name: USER_NAME
+          # reference to secret
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-user
+        - name: USER_PWD
+          # reference to secret
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-password 
+        - name: DB_URL
+          # reference to config
+          valueFrom:
+            configMapKeyRef:
+              name: mongo-config
+              key: mongo-url
+---
+# External Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-service
+spec:
+  type: NodePort # ClusterId is default type (internal)
+  selector: 
+    app: webapp # the pods the service belongs to
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000 # port of pods (containerPort)
+      nodePort: 31111 # port on which node is externaly available, range (30000 - 32767)
